@@ -1,14 +1,133 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-contract Counter {
-    uint256 public number;
+import "../lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 
-    function setNumber(uint256 newNumber) public {
-        number = newNumber;
+contract SpellStriker is ERC721 {
+    // spells to choose when preparing for duel
+    enum Spells {
+        none,
+        thunderbolt,
+        iceSheild,
+        wallOfThrons,
+        divineFavor
+    }
+    // players attributes
+    struct Spell_Stricker {
+        string name;
+        uint256 power;
+        uint256 resistance;
+        uint256 mana;
+        Spells spell;
+        uint256 level;
     }
 
-    function increment() public {
-        number++;
+    address gameLogicAddress; // The address of the game logic;
+    mapping(uint256 => Spell_Stricker) private players; //Mapping that stores players details
+
+    uint256 tokenID; //Assigns unique ID to the NFT
+
+    event NewPlayerAdded(
+        address indexed to,
+        uint256 indexed tokenId,
+        string name_
+    );
+    event ManaUpdated(uint256 indexed tokenID, uint256 _mana);
+
+	event LevelUpdated(uint256 indexed tokenId, uint256 indexed upgradedTo);
+
+    modifier onlyByGameLogicContract() {
+        require(msg.sender == gameLogicAddress, "ONLY_BY_GAMELOGIC");
+        _;
+    }
+
+    constructor(address gameLogicAddress_) ERC721("Spell_Striker", "SP") {
+        gameLogicAddress = gameLogicAddress_;
+    }
+
+    function mintNFT(string calldata name_) external {
+        tokenID++;
+        uint256 _power = _generateRandomNumber();
+        uint256 _resistance = _generateRandomNumber();
+        Spell_Stricker memory _spellStriker = Spell_Stricker(
+            name_,
+            _power,
+            _resistance,
+            0,
+            Spells.none,
+            1
+        );
+        players[tokenID] = _spellStriker;
+
+        _safeMint(msg.sender, tokenID);
+
+        emit NewPlayerAdded(msg.sender, tokenID, name_);
+    }
+
+    /**
+     * @notice Used to update the mana of a particular NFT
+     * @param tokenId The unique Id of a particular NFT
+     */
+    function updateMana(uint256 tokenId, uint256 _mana)
+        external
+        onlyByGameLogicContract
+    {
+        players[tokenId].mana += _mana;
+
+        emit ManaUpdated(tokenId, _mana);
+    }
+
+    /**
+     * @notice Used to change the level of a particlular NFT
+     * @param tokenId The unique Id of a particular NFT
+     */
+    function updateLevel(uint256 tokenId) external onlyByGameLogicContract {
+        players[tokenId].level++;
+
+		emit LevelUpdated(tokenId, players[tokenId].level);
+    }
+
+    /**
+     * @notice used to change the Spell of a particular NFT
+     * @param tokenId The unique Id of a particular NFT
+     * @param _spell The type of Spells
+     */
+
+    function changeSpell(uint256 tokenId, Spells _spell)
+        external
+        onlyByGameLogicContract
+    {
+        players[tokenId].spell = _spell;
+    }
+
+    /**
+     * @notice Used to get Attributes of a particular NFT
+     * @param tokenId The unique Id of a particular NFT
+     */
+    function getPlayerAttribute(uint256 tokenId)
+        external
+        view
+        returns (Spell_Stricker memory)
+    {
+        return players[tokenId];
+    }
+
+    /**
+     * @notice Used to generate Random number between 1-50 for Power and resistance;
+     * @dev Since blockchain is deterministic generating this way is not secure. Just we are using
+     * for learning purpose only
+     * Generates Same random for resistance and power.
+     */
+    function _generateRandomNumber() private view returns (uint256) {
+        return
+            uint(
+                keccak256(
+                    abi.encodePacked(
+                        block.difficulty,
+                        block.timestamp,
+                        msg.sender
+                    )
+                )
+            ) % 50;
     }
 }
