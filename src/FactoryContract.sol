@@ -27,24 +27,53 @@ contract SpellStriker is ERC721 {
 
     uint256 tokenID; //Assigns unique ID to the NFT
 
+	/**
+	 * @notice Emitted when a new player mints an NFT
+	 * @param to The address where NFT is minted
+	 * @param tokenId The unique Id of the newly minted NFT
+	 * @param name_ Name of the player			
+	 */
     event NewPlayerAdded(
         address indexed to,
         uint256 indexed tokenId,
         string name_
     );
-    event ManaUpdated(uint256 indexed tokenID, uint256 _mana);
 
+	/**
+	 * @notice Emitted when mana is updated of a particular NFT
+	 * @param tokenId The ID of the NFT
+	 * @param _mana The amount of mana added
+	 */
+    event ManaUpdated(uint256 indexed tokenId, uint256 _mana);
+
+	/**
+     * @notice Emitted when level of player is upgraded
+	 * @param tokenId The ID of the NFT
+	 * @param upgradedTo The upgraded level
+	 */
 	event LevelUpdated(uint256 indexed tokenId, uint256 indexed upgradedTo);
 
+	/**
+	 * @notice Used to check if the function marked with modifier called by the game logic contract
+	 */
     modifier onlyByGameLogicContract() {
         require(msg.sender == gameLogicAddress, "ONLY_BY_GAMELOGIC");
         _;
     }
 
+	/**
+     * @notice Initializes the the contract with necessary variables
+	 * @param gameLogicAddress_ The address of the game logic contract
+	 */
     constructor(address gameLogicAddress_) ERC721("Spell_Striker", "SP") {
         gameLogicAddress = gameLogicAddress_;
     }
 
+	/**
+	 * @notice Add new player to the game
+	 * @dev Mints new NFT added assigns its attributes
+	 * @param name_ The name of the player 
+	 */
     function mintNFT(string calldata name_) external {
         tokenID++;
         uint256 _power = _generateRandomNumber();
